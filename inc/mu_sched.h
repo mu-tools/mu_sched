@@ -42,29 +42,23 @@
 #define MU_SCHED_H
 
 // *****************************************************************************
-// C++ Compatibility
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// *****************************************************************************
 // Includes
 
-#include <stdbool.h>
-#include <stddef.h>
-
-// Include headers for the required mu_store modules and time API
-// Note: User must ensure these headers define the required types (mu_spsc_t,
-// mu_pqueue_t, mu_pvec_t, mu_pool_t, mu_time_abs_t, mu_time_rel_t) and
-// functions. These modules' queue types should be configured to store void*
-// pointers.
 #include "mu_pool.h"   // For mu_pool_t (needed for mu_event_t)
 #include "mu_pqueue.h" // For mu_pqueue_t (stores mu_thunk_t* pointers)
 #include "mu_pvec.h"   // For mu_pvec_t (stores mu_event_t* pointers)
 #include "mu_spsc.h"   // For mu_spsc_t (stores mu_thunk_t*pointers)
 #include "mu_thunk.h"  // For mu_thunk_t definition
 #include "mu_time.h"   // For mu_time_abs_t, mu_time_rel_t, mu_time_xxx()
+#include <stdbool.h>
+#include <stddef.h>
+
+// *****************************************************************************
+// C++ Compatibility
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // *****************************************************************************
 // Public types and definitions
