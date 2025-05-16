@@ -162,6 +162,19 @@ bool mu_sched_in(mu_thunk_t *thunk, mu_time_rel_t delay);
 bool mu_sched_from_isr(mu_thunk_t *thunk);
 
 /**
+ * @brief Remove all events associated with a thunk from the event_queue.
+ *
+ * Scans the event queue for wrappers whose ->thunk == the given thunk,
+ * removes each one (shifting the rest down), frees it back to the event_pool,
+ * and returns how many were removed.
+ *
+ * @param thunk  The thunk whose scheduled events should be deleted.  If NULL
+ *               or the scheduler isn’t initialized, does nothing and returns 0.
+ * @return       Number of events removed.
+ */
+int mu_sched_delete_thunk_events(mu_thunk_t *thunk);
+
+/**
  * @brief Sets the idle thunk.
  *
  * This thunk is executed when there are no other thunks to run in
@@ -215,6 +228,13 @@ bool mu_sched_has_runnable_thunk(void);
  * returned pointer points to the user-owned thunk object.
  */
 const mu_thunk_t *mu_sched_current_thunk(void);
+
+/**
+ * @brief Returns the current time according to the scheduler's time source.
+ * 
+ * @return The current time.
+ */
+mu_time_abs_t mu_sched_current_time(void);
 
 // *****************************************************************************
 // End of file

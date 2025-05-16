@@ -154,6 +154,37 @@ bool mu_sched_from_isr(mu_thunk_t *thunk) {
     return mu_spsc_put(s_sched.interrupt_q, thunk) == MU_SPSC_ERR_NONE;
 }
 
+int mu_sched_delete_thunk_events(mu_thunk_t *thunk) {
+    if (!is_scheduler_initialized() || thunk == NULL) {
+        return 0;
+    }
+
+    int removed = 0;
+    mu_event_t *evt;
+    /* Iterate by index; when we delete at i, the next element shifts into i,
+     * so only increment i when we don’t delete. */
+    size_t i = 0;
+    while (i < mu_pvec_count(s_sched.event_q)) {
+        if (mu_pvec_ref(s_sched.event_q, i, (void **)&evt) !=
+            MU_STORE_ERR_NONE) {
+            break; // something’s wrong—abort
+        }
+
+        if (evt->thunk == thunk) {
+            /* remove that wrapper from the vector */
+            mu_pvec_delete(s_sched.event_q, i, (void **)&evt);
+            /* return it to the pool */
+            mu_pool_free(s_sched.event_pool, evt);
+            removed++;
+            /* do not advance i, since the next event has shifted into slot i */
+        } else {
+            i++;
+        }
+    }
+
+    return removed;
+}
+
 void mu_sched_set_idle_thunk(mu_thunk_t *idle) {
     if (!is_scheduler_initialized()) {
         return;
@@ -247,6 +278,14 @@ const mu_thunk_t *mu_sched_current_thunk(void) {
         return NULL;
     }
     return s_sched.current_thunk;
+}
+
+mu_time_abs_t mu_sched_current_time(void) {
+    if (!is_scheduler_initialized()) {
+        // If someone calls this before init, fall back to the default
+        return mu_time_now();
+    }
+    return s_sched.get_time();
 }
 
 static bool is_scheduler_initialized(void) { return s_sched_initialized; }
