@@ -345,6 +345,64 @@ void test_mu_sched_current_thunk_reports_self(void) {
     TEST_ASSERT_NULL(mu_sched_current_thunk());
 }
 
+// -----------------------------------------------------------------------------
+// Tests for mu_sched_current_time()
+// -----------------------------------------------------------------------------
+
+void test_mu_sched_current_time_returns_overridden_time(void) {
+    init_scheduler_for_test();
+    // init_scheduler_for_test already did: mu_sched_set_time_fn(get_virtual_time)
+    // and set_virtual_time(mk_time(0,0))
+    mu_time_abs_t t = mk_time(42, 123);
+    set_virtual_time(t);
+    mu_time_abs_t now = mu_sched_current_time();
+    TEST_ASSERT_EQUAL_INT(42, now.seconds);
+    TEST_ASSERT_EQUAL_INT64(123, now.nanoseconds);
+}
+
+// -----------------------------------------------------------------------------
+// Tests for mu_sched_delete_thunk_events()
+// -----------------------------------------------------------------------------
+
+void test_mu_sched_delete_thunk_events_param_and_notfound(void) {
+    counting_thunk_t A;
+    counting_thunk_init(&A);
+    // not yet initialized → should do nothing
+    TEST_ASSERT_EQUAL_INT(0, mu_sched_delete_thunk_events(&A.thunk));
+    TEST_ASSERT_EQUAL_INT(0, mu_sched_delete_thunk_events(NULL));
+
+    // now initialize, but schedule nothing → still returns 0
+    init_scheduler_for_test();
+    TEST_ASSERT_EQUAL_INT(0, mu_sched_delete_thunk_events(&A.thunk));
+}
+
+void test_mu_sched_delete_thunk_events_removes_matching(void) {
+    counting_thunk_t A, B;
+    counting_thunk_init(&A);
+    counting_thunk_init(&B);
+
+    init_scheduler_for_test();
+    // virtual_time is already zero and time‐fn is get_virtual_time
+
+    // schedule A twice and B once at "now"
+    TEST_ASSERT_TRUE(mu_sched_at(&A.thunk, mu_sched_current_time()));
+    TEST_ASSERT_TRUE(mu_sched_at(&A.thunk, mu_sched_current_time()));
+    TEST_ASSERT_TRUE(mu_sched_at(&B.thunk, mu_sched_current_time()));
+
+    // remove A's pending events
+    int removed = mu_sched_delete_thunk_events(&A.thunk);
+    TEST_ASSERT_EQUAL_INT(2, removed);
+
+    // now advance and step: only B should fire once
+    mu_sched_step();
+    TEST_ASSERT_EQUAL_INT(0, A.call_count);
+    TEST_ASSERT_EQUAL_INT(1, B.call_count);
+
+    // a second step should do nothing (no more pending)
+    mu_sched_step();
+    TEST_ASSERT_EQUAL_INT(1, B.call_count);
+}
+
 // *****************************************************************************
 // Test driver
 
@@ -361,6 +419,8 @@ int main(void) {
     RUN_TEST(test_mu_sched_step_latest_last);
     RUN_TEST(test_mu_sched_step_tied_fifo);
     RUN_TEST(test_mu_sched_current_thunk_reports_self);
+    RUN_TEST(test_mu_sched_current_time_returns_overridden_time);
+    RUN_TEST(test_mu_sched_delete_thunk_events_removes_matching);
 
     return UNITY_END();
 }
